@@ -12,7 +12,7 @@ bcrypt=Bcrypt(app)
 
 # configuro la base de datos, con el nombre el usuario y la clave
 app.config["SECRET_KEY"]='12345678F'
-app.config['SQLALCHEMY_DATABASE_URI']='mysql+pymysql://root:1234@localhost/todos'
+app.config['SQLALCHEMY_DATABASE_URI']='mysql+pymysql://FabrizioAvila1:12345678F@FabrizioAvila1.mysql.pythonanywhere-services.com/FabrizioAvila1$todos'
 # URI de la BBDD                          driver de la BD  user:clave@URLBBDD/nombreBBDD
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False #none
 db= SQLAlchemy(app)   #crea el objeto db de la clase SQLAlquemy
@@ -29,7 +29,7 @@ class User(db.Model):
     todos=db.relationship("ToDo",backref="user")
 
 
-class ToDo(db.Model):   # la clase Producto hereda de db.Model    
+class ToDo(db.Model):   # la clase Producto hereda de db.Model
     id=db.Column(db.Integer, primary_key=True)   #define los campos de la tabla
     title=db.Column(db.String(200),nullable=False)
     fecha=db.Column(db.DateTime,default=datetime.now)
@@ -50,14 +50,23 @@ class UserSchema(ma.Schema):
 
 
 
-todo_schema=ToDoSchema()            
-todos_schema=ToDoSchema(many=True)  
+todo_schema=ToDoSchema()
+todos_schema=ToDoSchema(many=True)
 user_schema=UserSchema()
+users_schema=UserSchema(many=True)
 
 @app.route("/")
 def start():
     return "Hello World to my API"
-
+@app.route('/users/<email>',methods=["GET"])
+def get_user(email):
+    user=User.query.filter_by(email=email).first()
+    return user_schema.jsonify(user)
+@app.route('/users',methods=["GET"])
+def get_users():
+    all_users=User.query.all()
+    results=users_schema.dump(all_users)
+    return jsonify(results)
 @app.route('/signup', methods=["POST"])
 def signup_user():
     name=request.json["name"]
@@ -67,8 +76,9 @@ def signup_user():
 
     email_exists= User.query.filter_by(email=email).first()
 
+
     if email_exists:
-        return jsonify({"error":"Correo electronico ya registrado"}),401
+        return jsonify({"error":"Correo Electronico ya registrado"}),401
 
 
     hashed_password=bcrypt.generate_password_hash(password)
@@ -86,8 +96,8 @@ def login_user():
     user=User.query.filter_by(email=email).first()
 
     if user is None:
-        return jsonify({"error":Correo electronico o contraseña incorrectas"}),401
-    
+        return jsonify({"error":"Correo electronico o contraseña incorrectas"}),401
+
     if not bcrypt.check_password_hash(user.password,password):
         return jsonify({"error":"Correo electronico o contraseña incorrectas"}),401
 
@@ -133,5 +143,5 @@ def delete_todo(id):
     return todo_schema.jsonify(todo)
 
 # programa principal *******************************
-if __name__=='__main__':  
+if __name__=='__main__':
     app.run(debug=True, port=5000)    # ejecuta el servidor Flask en el puerto 5000
