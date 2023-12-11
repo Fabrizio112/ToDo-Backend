@@ -65,13 +65,10 @@ def signup_user():
     email=request.json["email"]
     password=request.json["password"]
 
-    username_exists=User.query.filter_by(username=username).first()
     email_exists= User.query.filter_by(email=email).first()
 
-    if username_exists:
-        return jsonify({"error":"Username Already Exist"})
     if email_exists:
-        return jsonify({"error":"Email Already Exist"})
+        return jsonify({"error":"Correo electronico ya registrado"}),401
 
 
     hashed_password=bcrypt.generate_password_hash(password)
@@ -89,10 +86,10 @@ def login_user():
     user=User.query.filter_by(email=email).first()
 
     if user is None:
-        return jsonify({"error":"Unauthorized Access"}),401
+        return jsonify({"error":Correo electronico o contraseña incorrectas"}),401
     
     if not bcrypt.check_password_hash(user.password,password):
-        return jsonify({"error":"Unauthorized"}),401
+        return jsonify({"error":"Correo electronico o contraseña incorrectas"}),401
 
     return jsonify({
         "id":user.id,
