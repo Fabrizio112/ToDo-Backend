@@ -26,7 +26,8 @@ class User(db.Model):
     username=db.Column(db.String(100))
     email=db.Column(db.String(200))
     password=db.Column(db.String(100))
-    todos=db.relationship("ToDo",backref="user")
+    todos=db.relationship('ToDo',backref='user')
+
 
 
 class ToDo(db.Model):   # la clase Producto hereda de db.Model
@@ -35,6 +36,7 @@ class ToDo(db.Model):   # la clase Producto hereda de db.Model
     fecha=db.Column(db.DateTime,default=datetime.now)
     description=db.Column(db.Text)
     id_user=db.Column(db.Integer,db.ForeignKey("user.id"))
+
     #  si hay que crear mas tablas , se hace aqui
 
 with app.app_context():
@@ -47,6 +49,7 @@ class ToDoSchema(ma.Schema):
 class UserSchema(ma.Schema):
     class Meta:
         fields=('id','name','username','email','password','todos')
+        exclude=('todos',)
 
 
 
@@ -61,12 +64,11 @@ def start():
 @app.route('/users/<email>',methods=["GET"])
 def get_user(email):
     user=User.query.filter_by(email=email).first()
-    return user_schema.jsonify(user)
-@app.route('/users',methods=["GET"])
-def get_users():
-    all_users=User.query.all()
-    results=users_schema.dump(all_users)
-    return jsonify(results)
+    if not user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    user_json=user_schema.dump(user)
+    return jsonify(user_json)
+
 @app.route('/signup', methods=["POST"])
 def signup_user():
     name=request.json["name"]
@@ -122,10 +124,16 @@ def add_todo():
     title=request.json["title"]
     description=request.json["description"]
     id_user=request.json["id_user"]
-    new_todo=ToDo(title=title,description=description,id_user=id_user)
+    user=User.query.get(id_user)
+    if not user:
+        return jsonify({'error':'Usuario no encontrado'}),404
+    new_todo=ToDo(title=title,description=description,user=user)
+
     db.session.add(new_todo)
     db.session.commit()
-    return todo_schema.jsonify(new_todo)
+
+    todo_json=todo_schema.dump(new_todo)
+    return jsonify(todo_json)
 
 @app.route('/todos/<id>',methods=["PUT"])
 def update_todo(id):
